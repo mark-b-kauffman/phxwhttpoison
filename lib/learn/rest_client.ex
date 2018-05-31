@@ -3,6 +3,7 @@ defmodule Learn.RestClient do
   import HTTPoison
   @version_endpoint  "/learn/api/public/v1/system/version"
   @oauth2_token_endpoint "/learn/api/public/v1/oauth2/token"
+  @users_endpoint "/learn/api/public/v1/users"
 
   @enforce_keys [:fqdn, :key, :secret]
   defstruct [:fqdn, :key, :secret, :auth ]
@@ -50,7 +51,7 @@ defmodule Learn.RestClient do
         url = "https://#{rest_client.fqdn}#{@oauth2_token_endpoint}" <> "?code=#{code}&redirect_uri=#{redirect_uri}"
         body = "grant_type=authorization_code"
     end
-    IO.puts :stdio, "Calling HTTPoison.post"
+    # IO.puts :stdio, "Calling HTTPoison.post"
     {code, respone} = HTTPoison.post url, body, headers, options
   end
 
@@ -83,6 +84,14 @@ defmodule Learn.RestClient do
   """
   def authorize(rest_client) do
     authorize(rest_client, 0, "")
+  end
+
+
+  def get_user(rest_client, user_id) do
+    url = "https://#{rest_client.fqdn}#{@users_endpoint}/#{user_id}"
+    headers = [{"Content-Type",  "application/json"}, {"Authorization", "Bearer #{rest_client.auth["access_token"]}"}]
+    options = []
+    {code, response} = HTTPoison.get url, headers, options
   end
 
 end
