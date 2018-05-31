@@ -86,7 +86,6 @@ defmodule Learn.RestClient do
     authorize(rest_client, 0, "")
   end
 
-
   def get_user(rest_client, user_id) do
     url = "https://#{rest_client.fqdn}#{@users_endpoint}/#{user_id}"
     headers = [{"Content-Type",  "application/json"}, {"Authorization", "Bearer #{rest_client.auth["access_token"]}"}]
