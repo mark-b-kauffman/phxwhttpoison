@@ -1,9 +1,9 @@
 defmodule Learn.RestClient do
   alias Learn.{RestClient}
   import HTTPoison
-  @version_endpoint  "/learn/api/public/v1/system/version"
-  @oauth2_token_endpoint "/learn/api/public/v1/oauth2/token"
-  @users_endpoint "/learn/api/public/v1/users"
+  @v1_system_version  "/learn/api/public/v1/system/version"
+  @v1_oauth2_token "/learn/api/public/v1/oauth2/token"
+  @v1_users "/learn/api/public/v1/users"
 
   @enforce_keys [:fqdn, :key, :secret]
   defstruct [:fqdn, :key, :secret, :auth ]
@@ -36,7 +36,7 @@ defmodule Learn.RestClient do
 
   def get_system_version(rest_client) do
     # GET /learn/api/public/v1/system/version
-    url = "https://#{rest_client.fqdn}#{@version_endpoint}"
+    url = "https://#{rest_client.fqdn}#{@v1_system_version}"
     {code, response} = HTTPoison.get url
   end
 
@@ -45,10 +45,10 @@ defmodule Learn.RestClient do
     options = [hackney: [basic_auth: {"#{rest_client.key}", "#{rest_client.secret}"}] ]
     case code do
       0 ->
-        url = "https://#{rest_client.fqdn}#{@oauth2_token_endpoint}"
+        url = "https://#{rest_client.fqdn}#{@v1_oauth2_token}"
         body = "grant_type=client_credentials"
       _ ->
-        url = "https://#{rest_client.fqdn}#{@oauth2_token_endpoint}" <> "?code=#{code}&redirect_uri=#{redirect_uri}"
+        url = "https://#{rest_client.fqdn}#{@v1_oauth2_token}" <> "?code=#{code}&redirect_uri=#{redirect_uri}"
         body = "grant_type=authorization_code"
     end
     # IO.puts :stdio, "Calling HTTPoison.post"
@@ -87,7 +87,14 @@ defmodule Learn.RestClient do
   end
 
   def get_user(rest_client, user_id) do
-    url = "https://#{rest_client.fqdn}#{@users_endpoint}/#{user_id}"
+    url = "https://#{rest_client.fqdn}#{@v1_users}/#{user_id}"
+    headers = [{"Content-Type",  "application/json"}, {"Authorization", "Bearer #{rest_client.auth["access_token"]}"}]
+    options = []
+    {code, response} = HTTPoison.get url, headers, options
+  end
+
+  def get_users_courses(rest_client, user_id) do
+    url = "https://#{rest_client.fqdn}#{@v1_users}/#{user_id}/courses"
     headers = [{"Content-Type",  "application/json"}, {"Authorization", "Bearer #{rest_client.auth["access_token"]}"}]
     options = []
     {code, response} = HTTPoison.get url, headers, options
