@@ -1,8 +1,12 @@
 defmodule Learn.RestClient do
   alias Learn.{RestClient}
   import HTTPoison
-  @v1_system_version  "/learn/api/public/v1/system/version"
+  # oauth
   @v1_oauth2_token "/learn/api/public/v1/oauth2/token"
+  @v1_oauth2_authorization_code "/learn/api/public/v1/oauth2/authorizationcode"
+
+  @v1_system_version  "/learn/api/public/v1/system/version"
+
   @v1_users "/learn/api/public/v1/users"
 
   @enforce_keys [:fqdn, :key, :secret]
@@ -21,6 +25,14 @@ defmodule Learn.RestClient do
       key: "00000000-1111-2222-3333-444444444444",
       secret: "12345678901234567890123456789012"
     }
+
+    iex(3)> rc = Learn.RestClient.new("bd-partner-a-original.blackboard.com", System.get_env("APP_KEY"), System.get_env("APP_SECRET"))
+%Learn.RestClient{
+  auth: nil,
+  fqdn: "bd-partner-a-original.blackboard.com",
+  key: "d128e50d-c91e-47d3-a97e-9d0c8a77fb5d",
+  secret: "xyzzy"
+}
 
   """
   def new(fqdn, key, secret) do
@@ -60,14 +72,31 @@ defmodule Learn.RestClient do
     with the auth. If we call this with code other than 0, we're doing 3LO.
     We've previously gotten the code from logging in via the
     /learn/api/public/v1/oauth2/authorizationcode endpoint.
+
     Example:
-    /learn/api/public/v1/oauth2/authorizationcode?redirect_uri=https://localhost&response_type=code&client_id=d128e50d-c91e-47d3-a97e-9d0c8a77fb5d&scope=read
+    https://bd-partner-a-original.blackboard.com/learn/api/public/v1/oauth2/authorizationcode?redirect_uri=https://localhost&response_type=code&client_id=d128e50d-c91e-47d3-a97e-9d0c8a77fb5d&scope=read%20offline
+    Browser is then redirected to Learn login page. We login with mkauffman-student3 and browser is sent to:
+    https://localhost/?code=oDNloDmgqEFbPoSRCYjKKskQMBIYjWp6
+
+    iex(4)> rcauth = Learn.RestClient.authorize(rc, "oDNloDmgqEFbPoSRCYjKKskQMBIYjWp6", "https://localhost")
+%Learn.RestClient{
+  auth: %{
+    "access_token" => "qm1vVtvjR05Zs405YIvzOwGY2aJQ809f",
+    "expires_in" => 3599,
+    "scope" => "read",
+    "token_type" => "bearer",
+    "user_id" => "02f8aa8b159c4bd3a54a35bb29bc1f8c"
+  },
+  fqdn: "bd-partner-a-original.blackboard.com",
+  key: "d128e50d-c91e-47d3-a97e-9d0c8a77fb5d",
+  secret: "xyzzy"
+}
+
   """
   def authorize(rest_client, code, redirect_uri) do
     case {code, response} = post_oauth2_token(rest_client, code, redirect_uri) do
       {:ok, response} -> {:ok, auth} = Poison.decode(response.body)
       {_, response } -> raise("rest_client: #{inspect rest_client} code: #{Atom.to_string(code)} response: #{inspect response}")
-      _ -> raise("rest_client: #{inspect rest_client} code: #{Atom.to_string(code)} response: #{inspect response}")
     end
     case auth do
       %{"access_token" => _, "token_type" => _, "expires_in" => _ } -> auth
